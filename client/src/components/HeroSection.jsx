@@ -15,12 +15,12 @@ const HeroSection = () => {
       Empower your creativity and bring your chatbot characters to life with our interactive platform. Get started today and turn your imagination into engaging conversations!
       </p>
       <div className="flex justify-center my-10">
-        <a
-          href="/home"
+        <Link
+          to="/home"
           className="bg-gradient-to-r from-orange-500 to-orange-800 py-3 px-4 mx-3 rounded-md"
         >
           Start for free
-        </a>
+        </Link>
         <a href="#" className="py-3 px-4 mx-3 rounded-md border">
           Documentation
         </a>
