@@ -29,7 +29,7 @@ const ChatbotPage = () => {
             }
             // Get bot_id from the query string using URLSearchParams
             
-            const response = await fetch(`http://127.0.0.1:8000/get_bot_by_id/?bot_id=${botId}`);
+            const response = await fetch(`https://chat-persona-ai-ov46.vercel.app/get_bot_by_id/?bot_id=${botId}`);
             const data = await response.json();
             setBotData(data); // Set the fetched data into state
             console.log(data.bot.bot_name)
