@@ -1,0 +1,21 @@
+.custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: transparent; /* Matches bg-neutral-900 */
+    border-radius: 12px; /* Makes the thumb rounded */
+    border-top-left-radius: 8px; /* More rounding at the top */
+    border-top-right-radius: 8px; /* More rounding at the top */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background-color: transparent; /* Matches a darker gray for the track */
+    border-radius: 12px; /* Makes the track rounded */
+  }
+  
+  .custom-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: #2b2222 transparent; /* Thumb color, Track color */
+  }
+  
