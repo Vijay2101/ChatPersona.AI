@@ -69,7 +69,7 @@ const Chat = ({data}) => {
         ); // Last message in chat
         // console.log([data.botData.bot._id,data.botData.bot.bot_name,data.botData.bot.prompt,data.botData.bot.start_message,message])
         // Send the POST request
-        const response = await fetch("http://127.0.0.1:8000/chat_generation/", {
+        const response = await fetch("https://chat-persona-ai-ov46.vercel.app/chat_generation/", {
           method: "POST",
           body: formData,
         });

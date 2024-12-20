@@ -1,5 +1,6 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+// import { Link } from 'react-router-dom';
 import { CheckCircle2 } from "lucide-react";
 import codeImg from "../assets/code.jpg";
 import { checklistItems } from "../constants";
@@ -9,6 +10,8 @@ const ChatBotDesc = ({ data }) => {
 
   const handleClick = () => {
     // const data = { key: 'value' }; // Replace with the data you want to send
+    console.log("click kar diya")
+    console.log(data)
     navigate('/chat', { state: data });
   };
   return (
@@ -43,16 +46,16 @@ const ChatBotDesc = ({ data }) => {
                 </p>
                 <div className="pt-12 w-full lg:w-1/2 flex flex-row items-center justify-center">
             
-                    <a
-                        href="/chat"
-                        onClick={handleClick}
+                    <Link
+                        to="/chat"
+                        state={{ key: data }}
                         className="bg-gradient-to-r from-orange-500 to-orange-800 py-3 px-4 mx-3 rounded-md w-30"
                         >
                         Chat Now
-                        </a>
-                        <a href="#" className="py-3 px-4 mx-3 rounded-md border ">
+                        </Link>
+                        <Link to="#" className="py-3 px-4 mx-3 rounded-md border ">
                         Add to favourite
-                    </a>
+                    </Link>
 
                 </div>
             </div>

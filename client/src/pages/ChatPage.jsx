@@ -5,8 +5,11 @@ import Chat from '../components/Chat';
 
 const ChatPage = () => {
   const location = useLocation();
-  const data = location.state;
+  const data1 = location.state;
   // console.log(data.bot._id)
+  const data= data1.key
+  console.log(data.bot._id)
+  console.log("data aaya kyaaaa")
   const botId = data.bot._id
   const user_email = "kumarvijay2003.vk@gmail.com"
   const [userChat, getUserChat] = useState(null);
@@ -14,12 +17,13 @@ const ChatPage = () => {
   const [loadingChat, setLoadingChat] = useState(true);
   const [loadingBot, setLoadingBot] = useState(true);
   const [error, setError] = useState(null);
+  console.log("aaya")
   useEffect(() => {
     // Fetch chat data from API
     const fetchChatData = async () => {
       try {
         const response = await fetch(
-          `https://chat-persona-ai-ov46.vercel.app/?email=${user_email}&bot_id=${botId}`
+          `https://chat-persona-ai-ov46.vercel.app/show_chat/?email=${user_email}&bot_id=${botId}`
         );
 
         if (!response.ok) {
@@ -48,6 +52,8 @@ const ChatPage = () => {
         }
 
         const response = await fetch(`https://chat-persona-ai-ov46.vercel.app/get_bot_by_id/?bot_id=${botId}`);
+        console.log("fun")
+        console.log(response)
         if (!response.ok) {
           throw new Error('Failed to fetch bot data');
         }
