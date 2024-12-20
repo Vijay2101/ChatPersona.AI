@@ -13,7 +13,7 @@ const ChatBotsList = () => {
     useEffect(() => {
         const fetchChatbots = async () => {
             try {
-                const response = await fetch('http://127.0.0.1:8000/get_all_bots');
+                const response = await fetch('https://chat-persona-ai-ov46.vercel.app/get_all_bots');
                 const data = await response.json();
                 setChatbots(data.bots);  // Update the state with the fetched data
                 console.log(data)
