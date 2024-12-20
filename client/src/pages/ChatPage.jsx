@@ -19,7 +19,7 @@ const ChatPage = () => {
     const fetchChatData = async () => {
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/show_chat/?email=${user_email}&bot_id=${botId}`
+          `https://chat-persona-ai-ov46.vercel.app/?email=${user_email}&bot_id=${botId}`
         );
 
         if (!response.ok) {
@@ -47,7 +47,7 @@ const ChatPage = () => {
           return; // Avoid fetching again if bot data is already loaded
         }
 
-        const response = await fetch(`http://127.0.0.1:8000/get_bot_by_id/?bot_id=${botId}`);
+        const response = await fetch(`https://chat-persona-ai-ov46.vercel.app/get_bot_by_id/?bot_id=${botId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch bot data');
         }
