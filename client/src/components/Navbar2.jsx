@@ -34,8 +34,8 @@ const Navbar = () => {
                     ))}
                 </ul>
                 <div className="hidden lg:flex justify-center space-x-12 items-center">
-                    <a href="/signin" className="py-2 px-3 border rounded-md">Sign In</a>
-                    <a href="/signup"className="bg-gradient-to-r from-orange-500 to-orange-800 py-2 px-3 rounded-md">Create an account</a>
+                    <Link to="/signin" className="py-2 px-3 border rounded-md">Sign In</Link>
+                    <Link to="/signup"className="bg-gradient-to-r from-orange-500 to-orange-800 py-2 px-3 rounded-md">Create an account</Link>
                 </div>
                 <div className="lg:hidden md:flex flex-col justify-end">
                     <button onClick={toggleNavbar}>
@@ -48,16 +48,16 @@ const Navbar = () => {
                     <ul>
                         {navItems.map((item, index) => (
                             <li key={index} className="py-4">
-                                <a href={item.href}>{item.label}</a>
+                                <Link to={item.href}>{item.label}</Link>
                             </li>
                         ))}
                     </ul>
                     <div className="flex space-x-6">
-                        <a href="/signin" className="py-2 px-3 border rounded-md">
+                        <Link to="/signin" className="py-2 px-3 border rounded-md">
                             Sign In
-                        </a>
-                        <a href="/signup" className="py-2 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-800">
-                            Create an account</a>
+                        </Link>
+                        <Link to="/signup" className="py-2 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-800">
+                            Create an account</Link>
                     </div>
                 </div>
             )}

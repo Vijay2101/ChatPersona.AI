@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from '../axiosInstance'; // Axios setup for HTTP requests
-import { useNavigate } from 'react-router-dom'; // For page redirection
+import { Link,useNavigate } from 'react-router-dom'; // For page redirection
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -87,16 +87,18 @@ const SignUp = () => {
           </button>
       </form>
         </div>
-        <button
-          className="mt-4 flex items-center justify-center w-80 h-12 border border-orange-700 rounded-lg shadow-sm hover:shadow-md transition duration-200 bg-transparent text-white font-medium"
-        >
-          <img 
-            src="https://www.svgrepo.com/show/355037/google.svg" 
-            alt="Google Logo" 
-            className="w-6 h-6 mr-3"
-          />
-          Sign up with Google
-        </button>
+        <Link to="https://chat-persona-ai-ov46.vercel.app/google_login">
+          <button
+            className="mt-4 flex items-center justify-center w-80 h-12 border border-orange-700 rounded-lg shadow-sm hover:shadow-md transition duration-200 bg-transparent text-white font-medium"
+          >
+            <img 
+              src="https://www.svgrepo.com/show/355037/google.svg" 
+              alt="Google Logo" 
+              className="w-6 h-6 mr-3"
+            />
+            Sign up with Google
+          </button>
+        </Link>
           
     </div>
   );

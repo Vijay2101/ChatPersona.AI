@@ -52,7 +52,7 @@ const Navbar = () => {
                     ))}
                 </ul>
                 <div className="hidden lg:flex justify-center space-x-12 items-center">
-                    <a href="/logout" onClick={handleLogout}  className="py-2 px-3 border rounded-md">Logout</a>
+                    <Link to="/logout" onClick={handleLogout}  className="py-2 px-3 border rounded-md">Logout</Link>
                     <div className="flex items-center space-x-1">
                         <div>
                             <h6>{localStorage.getItem('username')}</h6>
@@ -76,14 +76,14 @@ const Navbar = () => {
                     <ul>
                         {navItems.map((item, index) => (
                             <li key={index} className="py-4">
-                                <a href={item.href}>{item.label}</a>
+                                <Link to={item.href}>{item.label}</Link>
                             </li>
                         ))}
                     </ul>
                     <div className="flex space-x-6">
-                        <a href="/signin" className="py-2 px-3 border rounded-md">
+                        <Link to="/signin" className="py-2 px-3 border rounded-md">
                             Logout
-                        </a>
+                        </Link>
                         
                     </div>
                     <div className="flex items-center space-x-1">

@@ -21,9 +21,9 @@ const HeroSection = () => {
         >
           Start for free
         </Link>
-        <a href="#" className="py-3 px-4 mx-3 rounded-md border">
+        <Link to="https://github.com/Vijay2101/ChatPersona.AI" className="py-3 px-4 mx-3 rounded-md border">
           Documentation
-        </a>
+        </Link>
       </div>
       <div className="flex mt-10 justify-center">
         <video
