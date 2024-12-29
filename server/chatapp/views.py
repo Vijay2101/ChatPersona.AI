@@ -128,12 +128,13 @@ def generate_token(user_id):
 def signup(request):
     if request.method == "POST":
         try:
-            data = request.POST  # For form data
+            # data = request.POST  # For form data
+            data = json.loads(request.body)
             username = data.get('username')
             email = data.get('email')
             password = data.get('password')
             confirm_password = data.get('confirmPassword')
-
+            print(username,email,password,confirm_password)
             # Allowed fields
             allowed_fields = {'username', 'email', 'password', 'confirmPassword'}
             received_fields = set(data.keys())
@@ -171,11 +172,11 @@ def signup(request):
                 "profile_photo_url": "https://wallpapercrafter.com/desktop1/636078-Bleach-Ichigo-Kurosaki-Zangetsu-Bleach-1080P.jpg"
             }
             result = user_collection.insert_one(new_user)
-
+            print(result)
             if result.inserted_id:
                 # Generate token after successful signup
-                token = generate_token(str(result.inserted_id))
-                return JsonResponse({"message": "Signup successful", "user_id": str(result.inserted_id), "token": token, "email": email}, status=201)
+                access_token, refresh_token = generate_tokens(str(result.inserted_id))
+                return JsonResponse({"message": "Signup successful", "user_id": str(result.inserted_id),"token": access_token,"refresh_token": refresh_token, "email": email,"username": username}, status=201)
             else:
                 return JsonResponse({"message": "Signup failed"}, status=500)
 
@@ -188,19 +189,69 @@ def signup(request):
 
 
 # Utility function to generate token
-def generate_token(user_id):
-    secret_key = "your_secret_key"  # Replace with your secret key
-    return jwt.encode({"user_id": user_id, "exp": datetime.now() + timedelta(hours=2)}, secret_key, algorithm="HS256")
+# def generate_token(user_id):
+#     secret_key = "your_secret_key"  # Replace with your secret key
+#     return jwt.encode({"user_id": user_id, "exp": datetime.now() + timedelta(hours=2)}, secret_key, algorithm="HS256")
 
+def generate_tokens(user_id):
+    # Generate Access Token (short-lived)
+    print("funct working")
+    access_token = jwt.encode(
+        {
+            "user_id": user_id,
+            "exp": datetime.now() + timedelta(minutes=15)  # 15 minutes expiry
+        },
+        "SECRET_KEY",
+        algorithm="HS256"
+    )
+    print(access_token)
+    # Generate Refresh Token (long-lived)
+    refresh_token = jwt.encode(
+        {
+            "user_id": user_id,
+            "exp": datetime.now() + timedelta(days=7)  # 7 days expiry
+        },
+        "SECRET_KEY",
+        algorithm="HS256"
+    )
+
+    return access_token, refresh_token
+
+def refresh_token(request):
+    try:
+        # data = request.POST
+        data = json.loads(request.body)
+        refresh_token = data.get('refresh_token')
+
+        # Decode refresh token
+        decoded = jwt.decode(refresh_token, "SECRET_KEY", algorithms=["HS256"])
+        user_id = decoded['user_id']
+
+        # Generate new access token
+        access_token = jwt.encode(
+            {"user_id": user_id, "exp": datetime.now() + timedelta(minutes=15)},
+            "SECRET_KEY",
+            algorithm="HS256"
+        )
+
+        return JsonResponse({"token": access_token}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({"message": "Refresh token expired"}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({"message": "Invalid token"}, status=401)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
 def signin(request):
     if request.method == "POST":
         try:
-            data = request.POST  # For form data
+            # data = request.POST  # For form data
+            data = json.loads(request.body)
             email = data.get('email')
             password = data.get('password')
-
+            print(email,password)
             # Allowed fields
             allowed_fields = {'email', 'password'}
             received_fields = set(data.keys())
@@ -208,21 +259,24 @@ def signin(request):
             # Check for unexpected fields
             if not received_fields.issubset(allowed_fields):
                 return JsonResponse({"error": "Invalid fields detected"}, status=400)
-
+            print("chala??")
             # Find user by email only
             user = user_collection.find_one({"email": email})
-
+            print(user)
+            print("chala??")
             if user:
                 print("user exists")
                 hashed_input_password = hashlib.sha256(password.encode()).hexdigest()
-                token = generate_token(str(user['_id']))
-
+                print("dfs")
+                access_token, refresh_token = generate_tokens(str(user['_id']))
+                print(access_token, refresh_token)
                 # Compare the hashed input password with the stored hashed password
                 if hashed_input_password == user['password']:
                     return JsonResponse(
                         {
                             "message": "Logged in successfully.",
-                            "token": token,
+                            "token": access_token,
+                            "refresh_token": refresh_token,
                             "username": user['username'],
                             "user_id": str(user['_id']),
                             "email": email
@@ -239,6 +293,150 @@ def signin(request):
 
     return JsonResponse({"message": "Invalid request method"}, status=405)
 
+from django.shortcuts import redirect
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+from oauthlib import oauth2
+import requests
+import json
+import os
+from urllib.parse import urlencode
+from pymongo import MongoClient
+from oauthlib.oauth2 import WebApplicationClient
+
+# Environment setup
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
+# Google OAuth credentials
+CLIENT_ID2 = os.environ.get("CLIENT_ID2")
+CLIENT_SECRET2 = os.environ.get("CLIENT_SECRET2")
+
+# MongoDB setup
+# client = MongoClient(settings.MONGO_URI)
+# db = client['socialiq_db']
+# collection2 = db['user_data']
+
+# OAuth request data
+DATA = {
+    'response_type': "code",
+    'redirect_uri': "https://chat-persona-ai-ov46.vercel.app/callback_google_trial",
+    'scope': 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+    'client_id': CLIENT_ID2,
+    'prompt': 'consent'
+}
+
+# URLs for Google OAuth
+URL_DICT = {
+    'google_oauth': 'https://accounts.google.com/o/oauth2/v2/auth',
+    'token_gen': 'https://oauth2.googleapis.com/token',
+    'get_user_info': 'https://www.googleapis.com/oauth2/v3/userinfo'
+}
+
+# OAuth Client
+CLIENT = oauth2.WebApplicationClient(CLIENT_ID2)
+REQ_URI = CLIENT.prepare_request_uri(
+    uri=URL_DICT['google_oauth'],
+    redirect_uri=DATA['redirect_uri'],
+    scope=DATA['scope'],
+    prompt=DATA['prompt']
+)
+
+# Step 1: Google Login (Redirect to Google OAuth)
+def google_login(request):
+    client = WebApplicationClient(CLIENT_ID2)
+    req_uri = client.prepare_request_uri(
+        URL_DICT['google_oauth'],
+        redirect_uri=DATA['redirect_uri'],
+        scope=DATA['scope'],
+        prompt=DATA['prompt']
+    )
+    return redirect(req_uri)
+
+@csrf_exempt
+def callback_google_trial(request):
+    if request.method == 'OPTIONS':
+        return JsonResponse({}, status=200)
+
+    print("callback trial")
+
+    # Get authorization code
+    code = request.GET.get('code')
+    print("code", code)
+
+    # Redirect URL
+    # redirect_url = request.build_absolute_uri()
+    redirect_url = request.build_absolute_uri().replace("http://", "https://")
+    print("redirect_url", redirect_url)
+
+    # Prepare token request
+    token_url, headers, body = CLIENT.prepare_token_request(
+        URL_DICT['token_gen'],
+        authorization_response=request.build_absolute_uri(),
+        redirect_url=DATA['redirect_uri'],
+        code=code
+    )
+
+    # Generate token
+    token_response = requests.post(
+        token_url,
+        headers=headers,
+        data=body,
+        auth=(CLIENT_ID2, CLIENT_SECRET2)
+    )
+
+    CLIENT.parse_request_body_response(json.dumps(token_response.json()))
+
+    # Get user info
+    uri, headers, body = CLIENT.add_token(URL_DICT['get_user_info'])
+    response_user_info = requests.get(uri, headers=headers, data=body)
+    info = response_user_info.json()
+    print(f"User Info: {info}")
+
+    # User data
+    new_user = {
+        'sub': info['sub'],
+        'name': info['name'],
+        'email': info['email'],
+        'picture': info['picture']
+    }
+
+    # Check existing user
+    existing_user = user_collection.find_one({'email': new_user['email']})
+
+    if existing_user:
+        print("User with this email already exists.")
+        user_id = str(existing_user['_id'])
+    else:
+        result = user_collection.insert_one(new_user)
+        user_id = str(result.inserted_id)
+        print("User data inserted successfully!")
+
+    # Email verification
+    if info.get("email_verified"):
+        access_token, refresh_token = generate_tokens(user_id)
+        # print(token)
+
+        params = {
+            "message": "Email verified",
+            "name": info['name'],
+            "email": info['email'],
+            "picture": info['picture'],
+            "token": access_token,
+            "refresh_token": refresh_token
+        }
+
+        # Encode parameters
+        encoded_params = urlencode(params)
+        print("encoded_params: ", encoded_params)
+
+        # Redirect URL
+        redirect_url = f"http://localhost:5173/AuthRedirectPage?{encoded_params}"
+        return redirect(redirect_url)
+    else:
+        return JsonResponse({"message": "Email not verified"}, status=200)
 
 
 @csrf_exempt
@@ -361,10 +559,8 @@ last message:
 
 You are {bot_name} and reply accordingly 
 
-The response should be in Json format based on last message with a single dialog:
-{{
-    {user_name}: dialog
-}}
+The response should be based on last message with a single dialog.
+
 '''
 
         # Call the groq_res function
