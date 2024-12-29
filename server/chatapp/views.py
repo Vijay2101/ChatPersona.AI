@@ -433,7 +433,7 @@ def callback_google_trial(request):
         print("encoded_params: ", encoded_params)
 
         # Redirect URL
-        redirect_url = f"http://localhost:5173/AuthRedirectPage?{encoded_params}"
+        redirect_url = f"https://chat-persona-ai.vercel.app/AuthRedirectPage?{encoded_params}"
         return redirect(redirect_url)
     else:
         return JsonResponse({"message": "Email not verified"}, status=200)
