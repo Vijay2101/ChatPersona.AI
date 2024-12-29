@@ -13,7 +13,7 @@ const ChatPage = () => {
   console.log(data.bot._id)
   console.log("data aaya kyaaaa")
   const botId = data.bot._id
-  const user_email = localStorage.getItem('username')
+  const user_email = localStorage.getItem('email')
   const [userChat, getUserChat] = useState(null);
   const [botData, setBotData] = useState(null);
   const [loadingChat, setLoadingChat] = useState(true);
