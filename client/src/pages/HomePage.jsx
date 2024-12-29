@@ -8,8 +8,11 @@ import Testimonials from '../components/Testimonials';
 import Footer from '../components/Footer';
 import ChatBotsList from '../components/ChatBotsList';
 
+
 const HomePage = () => {
   return (
+    <>
+    <Navbar />
     <div className="max-w-7xl mx-auto pt-20 px-6">
       {/* <Navbar />
       <div className="max-w-7xl mx-auto pt-20 px-6">
@@ -22,6 +25,7 @@ const HomePage = () => {
       </div> */}
       <ChatBotsList />
     </div>
+    </>
   );
 };
 

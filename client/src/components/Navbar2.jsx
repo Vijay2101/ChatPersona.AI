@@ -3,31 +3,13 @@ import { Menu, X } from "lucide-react";
 import logo from '../assets/logo3.png';
 import {navItems} from '../constants';
 import React, { useState } from 'react';
-import { Link, useNavigate} from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
     const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false)
     const toggleNavbar = () =>{
         setMobileDrawerOpen(!mobileDrawerOpen)
     }
-    // const handleLogout = () => {
-    //     localStorage.removeItem('token'); // Remove token from localStorage
-    //     window.location.href = '/signin'; // Redirect to signin page
-    //   };
-    const navigate = useNavigate();
-    const handleLogout = (e) => {
-        e.preventDefault();
-        
-        // Clear user data from localStorage (or wherever you store the token)
-        localStorage.removeItem('token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('username');
-        localStorage.removeItem('email');
-        
-        // Redirect to login page or home
-        navigate('/');
-      };
-      
   return (
     <nav className="sticky top-0 z-50 py-3 backdrop-blur-lg border-b border-neutral-700/80">
         <div className="container px-4 mx-auto relative lg:text-sm">
@@ -52,18 +34,8 @@ const Navbar = () => {
                     ))}
                 </ul>
                 <div className="hidden lg:flex justify-center space-x-12 items-center">
-                    <a href="/logout" onClick={handleLogout}  className="py-2 px-3 border rounded-md">Logout</a>
-                    <div className="flex items-center space-x-1">
-                        <div>
-                            <h6>{localStorage.getItem('username')}</h6>
-                            <span className="text-sm font-normal italic text-neutral-600">{localStorage.getItem('email')}</span>
-                        </div>
-                        <img
-                            className="w-8 h-8 rounded-full border border-neutral-300"
-                            src="https://waikikispecialistcentre.com.au/wp-content/uploads/2024/01/generic-photo.jpg"
-                            alt=""
-                        />
-                    </div>
+                    <a href="/signin" className="py-2 px-3 border rounded-md">Sign In</a>
+                    <a href="/signup"className="bg-gradient-to-r from-orange-500 to-orange-800 py-2 px-3 rounded-md">Create an account</a>
                 </div>
                 <div className="lg:hidden md:flex flex-col justify-end">
                     <button onClick={toggleNavbar}>
@@ -82,20 +54,10 @@ const Navbar = () => {
                     </ul>
                     <div className="flex space-x-6">
                         <a href="/signin" className="py-2 px-3 border rounded-md">
-                            Logout
+                            Sign In
                         </a>
-                        
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <div>
-                            <h6>{localStorage.getItem('username')}</h6>
-                            <span className="text-sm font-normal italic text-neutral-600">{localStorage.getItem('email')}</span>
-                        </div>
-                        <img
-                            className="w-8 h-8 rounded-full border border-neutral-300"
-                            src="https://waikikispecialistcentre.com.au/wp-content/uploads/2024/01/generic-photo.jpg"
-                            alt=""
-                        />
+                        <a href="/signup" className="py-2 px-3 rounded-md bg-gradient-to-r from-orange-500 to-orange-800">
+                            Create an account</a>
                     </div>
                 </div>
             )}

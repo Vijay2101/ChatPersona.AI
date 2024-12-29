@@ -8,7 +8,7 @@ const HeroSection = () => {
       Step into a new world of imagination 
         <span className="bg-gradient-to-r from-orange-500 to-red-800 text-transparent bg-clip-text">
           {" "}
-          with FunChat.AI
+          with ChatPersona.AI
         </span>
       </h1>
       <p className="mt-10 text-lg text-center text-neutral-500 max-w-4xl">
@@ -16,7 +16,7 @@ const HeroSection = () => {
       </p>
       <div className="flex justify-center my-10">
         <Link
-          to="/home"
+          to="/signin"
           className="bg-gradient-to-r from-orange-500 to-orange-800 py-3 px-4 mx-3 rounded-md"
         >
           Start for free

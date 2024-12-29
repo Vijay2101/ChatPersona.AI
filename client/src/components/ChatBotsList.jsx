@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import axios from '../axiosInstance'; // Axios setup for HTTP requests
+
 // import { Chatbots } from "../constants";
 import { Link } from 'react-router-dom';
-// bot_name
-// description
-// image_url
-// start_message
+
+
 const ChatBotsList = () => {
     const wordLimit = 30; // Adjust this value to control the number of words shown
     const [chatbots, setChatbots] = useState([]);
@@ -14,8 +14,10 @@ const ChatBotsList = () => {
     useEffect(() => {
         const fetchChatbots = async () => {
             try {
-                const response = await fetch('https://chat-persona-ai-ov46.vercel.app/get_all_bots');
-                const data = await response.json();
+                const response = await axios.get('https://chat-persona-ai-ov46.vercel.app/get_all_bots');
+                // console.log(response.data)
+                // const data = await response.json();
+                const data = response.data
                 setChatbots(data.bots);  // Update the state with the fetched data
                 console.log(data)
             } catch (err) {

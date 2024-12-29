@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'; // Hook to get current location
+import axios from '../axiosInstance'; // Axios setup for HTTP requests
 import { useParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
@@ -11,6 +12,9 @@ import Footer from '../components/Footer';
 import ChatBotsList from '../components/ChatBotsList';
 import ChatBotDesc from '../components/ChatBotDesc';
 import ChatBotDesc2 from '../components/ChatBotDesc2';
+
+// import axios from 'axios';
+
 
 const ChatbotPage = () => {
     const [botData, setBotData] = useState(null); // State to store the fetched data
@@ -29,8 +33,9 @@ const ChatbotPage = () => {
             }
             // Get bot_id from the query string using URLSearchParams
             
-            const response = await fetch(`https://chat-persona-ai-ov46.vercel.app/get_bot_by_id/?bot_id=${botId}`);
-            const data = await response.json();
+            const response = await axios.get(`https://chat-persona-ai-ov46.vercel.app/get_bot_by_id/?bot_id=${botId}`);
+            console.log(response)
+            const data = response.data
             setBotData(data); // Set the fetched data into state
             console.log(data.bot.bot_name)
         } catch (error) {
@@ -48,6 +53,7 @@ const ChatbotPage = () => {
 
     return (
         <>
+            <Navbar />
             <div className=" mx-auto pt-20 px-6  bg-gradient-to-b from-orange-500/35">
 
                 <ChatBotDesc data={botData} />

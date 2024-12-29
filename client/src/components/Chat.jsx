@@ -1,12 +1,14 @@
 import React, { useState, useEffect,useRef } from 'react';
 import '../scrollbar.css';
 import { SendHorizontal } from "lucide-react";
-
+// import axios from 'axios';
+import axios from '../axiosInstance';
 const Chat = ({data}) => {
 
-  // console.log(data.userChat); // Access userChat
+  // console.log(data); // Access userChat
   // console.log(data.botData); // Access anotherData
-
+  const username = localStorage.getItem('username');
+  const email = localStorage.getItem('email');
   // Static messages for now
   const messages1 = [
     { sender: "user", message: "hello" },
@@ -47,7 +49,7 @@ const Chat = ({data}) => {
   const handleSendMessage = async () => {
     if (message.trim()) {
       const newMessage = {
-        sender: "vijay",  // You can modify this to be dynamic if needed
+        sender: username,  // You can modify this to be dynamic if needed
         message: message
       }
       // Add the new message to the messages array
@@ -59,8 +61,8 @@ const Chat = ({data}) => {
       try {
         // Form data to send in the POST request
         const formData = new FormData();
-        formData.append("email", "kumarvijay2003.vk@gmail.com"); // Replace with actual email
-        formData.append("username", "vijay"); // Replace with actual username
+        formData.append("email", email); // Replace with actual email
+        formData.append("username", username); // Replace with actual username
         formData.append("bot_id", data.botData.bot._id); // Replace with actual bot_id
         formData.append("bot_name", data.botData.bot.bot_name); // Replace with actual bot_name
         formData.append("prompt", data.botData.bot.prompt); // Current message as the prompt
@@ -69,16 +71,25 @@ const Chat = ({data}) => {
         ); // Last message in chat
         // console.log([data.botData.bot._id,data.botData.bot.bot_name,data.botData.bot.prompt,data.botData.bot.start_message,message])
         // Send the POST request
-        const response = await fetch("https://chat-persona-ai-ov46.vercel.app/chat_generation/", {
-          method: "POST",
-          body: formData,
-        });
+        console.log("ss----------------------------")
+        console.log(formData)
+        console.log("ss----------------------------")
+        const response = await axios.post("https://chat-persona-ai-ov46.vercel.app/chat_generation/", 
+          formData,
+          {headers: {
+            "Content-Type": "multipart/form-data", // Required for form data
+          }},
+        
+        );
+        console.log("res----------------------------")
+        console.log(response)
+        console.log("res----------------------------")
+        // if (!response.ok) {
+        //   throw new Error("Failed to send message to the API");
+        // }
   
-        if (!response.ok) {
-          throw new Error("Failed to send message to the API");
-        }
-  
-        const bot_response = await response.json();
+        const bot_response = response.data;
+        // const bot_response =
         console.log("API Response:", bot_response);
   
         // Optionally, add the bot's response to the chat
@@ -109,7 +120,7 @@ const Chat = ({data}) => {
             <div
               key={index}
               className={`flex ${
-                msg.sender != "vijay" ? "justify-start" : "justify-end"
+                msg.sender != username ? "justify-start" : "justify-end"
               }`}
             >
               <div

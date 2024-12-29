@@ -1,9 +1,6 @@
 import React from 'react'
 import { useNavigate, Link } from 'react-router-dom';
-// import { Link } from 'react-router-dom';
-import { CheckCircle2 } from "lucide-react";
-import codeImg from "../assets/code.jpg";
-import { checklistItems } from "../constants";
+
 
 const ChatBotDesc = ({ data }) => {
   const navigate = useNavigate();
