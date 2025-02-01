@@ -561,6 +561,11 @@ You are {bot_name} and reply accordingly
 
 The response should be based on last message with a single dialog.
 
+Return a single response in json format
+{{
+    response:response
+}}
+
 '''
 
         # Call the groq_res function
