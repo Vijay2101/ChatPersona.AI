@@ -66,7 +66,7 @@ def groq_res(prompt):
             messages=[
                 {"role": "user", "content": prompt},
             ],
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",
             response_format={"type": "json_object"},
         )
         res = chat_completion.choices[0].message.content.strip()
