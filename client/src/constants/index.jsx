@@ -14,8 +14,8 @@ import user6 from "../assets/profile-pictures/user6.jpg";
 
 export const navItems = [
   { label: "Home", href: "/home" },
-  { label: "Your Chats", href: "#" },
-  { label: "Create Chatbot", href: "#" },
+  { label: "Your Chats", href: "/chats" },
+  { label: "Create Chatbot", href: "/createbot" },
   { label: "Favorite Chatbots", href: "#" },
   
 ];

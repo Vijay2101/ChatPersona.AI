@@ -1,6 +1,9 @@
 import React, { useState, useEffect,useRef } from 'react';
 import '../scrollbar.css';
 import { SendHorizontal } from "lucide-react";
+import { EllipsisVertical } from "lucide-react";
+import { useNavigate, Link } from 'react-router-dom';
+
 // import axios from 'axios';
 import axios from '../axiosInstance';
 const Chat = ({data}) => {
@@ -11,22 +14,6 @@ const Chat = ({data}) => {
   const email = localStorage.getItem('email');
   // Static messages for now
   const messages1 = [
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
-    { sender: "user", message: "hello" },
-    { sender: "user2", message: "hey user" },
     { sender: "user", message: "hello" },
     { sender: "user2", message: "hey user" },
 
@@ -105,6 +92,13 @@ const Chat = ({data}) => {
     }
   };
 
+  // Function to handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      handleSendMessage(); // Trigger send message function
+    }
+  };
+
   // Scroll to the bottom whenever messages change
   useEffect(() => {
     if (chatEndRef.current) {
@@ -113,7 +107,29 @@ const Chat = ({data}) => {
   }, [messages]); 
   return (
     <div className="flex items-center justify-center max-h-screen  rounded-xl">
-      <div className="w-full max-w-2xl h-[80vh] border  border-neutral-800  bg-neutral-900 rounded-xl shadow-lg flex flex-col ">
+      <div className="w-full max-w-2xl h-[90vh] border  border-neutral-800  bg-neutral-900 rounded-xl shadow-lg flex flex-col ">
+
+      <div className="flex items-center pl-4 pb-2 pt-2 border-b  border-neutral-800 justify-between">
+        <div className="flex items-center space-x-1">
+            <img
+                className="w-10 h-10 rounded-full border border-neutral-300"
+                src={data.botData.bot.image_url}
+                alt=""
+            />
+            <div>
+                <h6>{data.botData.bot.bot_name}</h6>
+                {/* <span className="text-sm font-normal italic text-neutral-600">{localStorage.getItem('email')}</span> */}
+            </div>
+            
+            
+        </div>
+        <div className='mr-4'>
+
+              <EllipsisVertical />
+
+        </div>
+      </div>
+
         {/* Chat Window */}
         <div className="flex-grow p-4 overflow-y-scroll space-y-4   overflow-y-scroll scrollbar-thin custom-scrollbar ">
           {messages.map((msg, index) => (
@@ -144,6 +160,7 @@ const Chat = ({data}) => {
             className="flex-grow p-1 rounded-lg border border-gray-300 focus:outline-none"
             value={message}
             onChange={handleChange}
+            onKeyDown={handleKeyPress}
             placeholder="Type a message..."
           />
           <button

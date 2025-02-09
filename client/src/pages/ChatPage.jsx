@@ -47,7 +47,7 @@ const ChatPage = () => {
 
     fetchChatData();
   }, [user_email, botId]);
-  console.log("yyyyyyyyyyyyyyyy")
+
   // Fetch bot data
   useEffect(() => {
     const fetchBotData = async () => {
@@ -92,7 +92,7 @@ const ChatPage = () => {
   return (
     <>
         <Navbar />
-        <div className=" mx-auto pt-20 px-6">
+        <div className=" mx-auto pt-3 px-6">
 
             <Chat data={{userChat,botData}}/>
         </div>

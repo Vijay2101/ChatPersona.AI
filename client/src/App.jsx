@@ -6,10 +6,11 @@ import HomePage from './pages/HomePage';
 import LandingPage from './pages/LandingPage';
 import ChatbotPage from './pages/ChatbotPage';
 import ChatPage from './pages/ChatPage';
-AuthRedirectPage
 import AuthRedirectPage from './pages/AuthRedirectPage';
 import SignInPage from './pages/SignInPage';
 import SignUpPage from './pages/SignUpPage';
+import ChatListPage from './pages/ChatListPage';
+import CreateBotPage from './pages/CreateBotPage';
 const App = () => {
   return (
     <Router>
@@ -19,12 +20,16 @@ const App = () => {
 
       <Routes>
         <Route path="/" element={<LandingPage />} />
+
         {/* <Route path="/home" element={<HomePage />} /> */}
         {/* Protected routes */}
+
         <Route element={<ProtectedRoute />}>
           <Route path="/home" element={<HomePage />} />
           <Route path="/chatbot" element={<ChatbotPage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chats" element={<ChatListPage />} />
+          <Route path="/createbot" element={<CreateBotPage />} />
         </Route>
         
         <Route path="/signin" element={<SignInPage />} />

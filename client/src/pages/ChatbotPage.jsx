@@ -23,6 +23,7 @@ const ChatbotPage = () => {
     const queryParams = new URLSearchParams(location.search);
     console.log(queryParams)
     const botId = queryParams.get('bot_id');
+    console.log(botId)
     // Fetch data from the API
     useEffect(() => {
         const fetchBotData = async () => {
