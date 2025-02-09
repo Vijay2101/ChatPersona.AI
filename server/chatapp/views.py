@@ -19,6 +19,17 @@ from gridfs import GridFS
 from dotenv import load_dotenv
 from groq import Groq
 from httpx import Client
+import shutil
+import numpy as np
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+import google.generativeai as genai
+import os
+import json
+from PyPDF2 import PdfReader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_community.vectorstores import FAISS
+
+
 http_client = Client()
 # Load .env file
 load_dotenv()
@@ -128,13 +139,12 @@ def generate_token(user_id):
 def signup(request):
     if request.method == "POST":
         try:
-            # data = request.POST  # For form data
-            data = json.loads(request.body)
+            data = request.POST  # For form data
             username = data.get('username')
             email = data.get('email')
             password = data.get('password')
             confirm_password = data.get('confirmPassword')
-            print(username,email,password,confirm_password)
+
             # Allowed fields
             allowed_fields = {'username', 'email', 'password', 'confirmPassword'}
             received_fields = set(data.keys())
@@ -172,11 +182,11 @@ def signup(request):
                 "profile_photo_url": "https://wallpapercrafter.com/desktop1/636078-Bleach-Ichigo-Kurosaki-Zangetsu-Bleach-1080P.jpg"
             }
             result = user_collection.insert_one(new_user)
-            print(result)
+
             if result.inserted_id:
                 # Generate token after successful signup
-                access_token, refresh_token = generate_tokens(str(result.inserted_id))
-                return JsonResponse({"message": "Signup successful", "user_id": str(result.inserted_id),"token": access_token,"refresh_token": refresh_token, "email": email,"username": username}, status=201)
+                token = generate_token(str(result.inserted_id))
+                return JsonResponse({"message": "Signup successful", "user_id": str(result.inserted_id), "token": token, "email": email}, status=201)
             else:
                 return JsonResponse({"message": "Signup failed"}, status=500)
 
@@ -189,69 +199,19 @@ def signup(request):
 
 
 # Utility function to generate token
-# def generate_token(user_id):
-#     secret_key = "your_secret_key"  # Replace with your secret key
-#     return jwt.encode({"user_id": user_id, "exp": datetime.now() + timedelta(hours=2)}, secret_key, algorithm="HS256")
+def generate_token(user_id):
+    secret_key = "your_secret_key"  # Replace with your secret key
+    return jwt.encode({"user_id": user_id, "exp": datetime.now() + timedelta(hours=2)}, secret_key, algorithm="HS256")
 
-def generate_tokens(user_id):
-    # Generate Access Token (short-lived)
-    print("funct working")
-    access_token = jwt.encode(
-        {
-            "user_id": user_id,
-            "exp": datetime.now() + timedelta(minutes=15)  # 15 minutes expiry
-        },
-        "SECRET_KEY",
-        algorithm="HS256"
-    )
-    print(access_token)
-    # Generate Refresh Token (long-lived)
-    refresh_token = jwt.encode(
-        {
-            "user_id": user_id,
-            "exp": datetime.now() + timedelta(days=7)  # 7 days expiry
-        },
-        "SECRET_KEY",
-        algorithm="HS256"
-    )
-
-    return access_token, refresh_token
-
-def refresh_token(request):
-    try:
-        # data = request.POST
-        data = json.loads(request.body)
-        refresh_token = data.get('refresh_token')
-
-        # Decode refresh token
-        decoded = jwt.decode(refresh_token, "SECRET_KEY", algorithms=["HS256"])
-        user_id = decoded['user_id']
-
-        # Generate new access token
-        access_token = jwt.encode(
-            {"user_id": user_id, "exp": datetime.now() + timedelta(minutes=15)},
-            "SECRET_KEY",
-            algorithm="HS256"
-        )
-
-        return JsonResponse({"token": access_token}, status=200)
-
-    except jwt.ExpiredSignatureError:
-        return JsonResponse({"message": "Refresh token expired"}, status=401)
-    except jwt.InvalidTokenError:
-        return JsonResponse({"message": "Invalid token"}, status=401)
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
 
 @csrf_exempt
 def signin(request):
     if request.method == "POST":
         try:
-            # data = request.POST  # For form data
-            data = json.loads(request.body)
+            data = request.POST  # For form data
             email = data.get('email')
             password = data.get('password')
-            print(email,password)
+
             # Allowed fields
             allowed_fields = {'email', 'password'}
             received_fields = set(data.keys())
@@ -259,24 +219,21 @@ def signin(request):
             # Check for unexpected fields
             if not received_fields.issubset(allowed_fields):
                 return JsonResponse({"error": "Invalid fields detected"}, status=400)
-            print("chala??")
+
             # Find user by email only
             user = user_collection.find_one({"email": email})
-            print(user)
-            print("chala??")
+
             if user:
                 print("user exists")
                 hashed_input_password = hashlib.sha256(password.encode()).hexdigest()
-                print("dfs")
-                access_token, refresh_token = generate_tokens(str(user['_id']))
-                print(access_token, refresh_token)
+                token = generate_token(str(user['_id']))
+
                 # Compare the hashed input password with the stored hashed password
                 if hashed_input_password == user['password']:
                     return JsonResponse(
                         {
                             "message": "Logged in successfully.",
-                            "token": access_token,
-                            "refresh_token": refresh_token,
+                            "token": token,
                             "username": user['username'],
                             "user_id": str(user['_id']),
                             "email": email
@@ -293,150 +250,6 @@ def signin(request):
 
     return JsonResponse({"message": "Invalid request method"}, status=405)
 
-from django.shortcuts import redirect
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from google.oauth2 import id_token
-from google_auth_oauthlib.flow import Flow
-from oauthlib import oauth2
-import requests
-import json
-import os
-from urllib.parse import urlencode
-from pymongo import MongoClient
-from oauthlib.oauth2 import WebApplicationClient
-
-# Environment setup
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
-
-# Google OAuth credentials
-CLIENT_ID2 = os.environ.get("CLIENT_ID2")
-CLIENT_SECRET2 = os.environ.get("CLIENT_SECRET2")
-
-# MongoDB setup
-# client = MongoClient(settings.MONGO_URI)
-# db = client['socialiq_db']
-# collection2 = db['user_data']
-
-# OAuth request data
-DATA = {
-    'response_type': "code",
-    'redirect_uri': "https://chat-persona-ai-ov46.vercel.app/callback_google_trial",
-    'scope': 'https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-    'client_id': CLIENT_ID2,
-    'prompt': 'consent'
-}
-
-# URLs for Google OAuth
-URL_DICT = {
-    'google_oauth': 'https://accounts.google.com/o/oauth2/v2/auth',
-    'token_gen': 'https://oauth2.googleapis.com/token',
-    'get_user_info': 'https://www.googleapis.com/oauth2/v3/userinfo'
-}
-
-# OAuth Client
-CLIENT = oauth2.WebApplicationClient(CLIENT_ID2)
-REQ_URI = CLIENT.prepare_request_uri(
-    uri=URL_DICT['google_oauth'],
-    redirect_uri=DATA['redirect_uri'],
-    scope=DATA['scope'],
-    prompt=DATA['prompt']
-)
-
-# Step 1: Google Login (Redirect to Google OAuth)
-def google_login(request):
-    client = WebApplicationClient(CLIENT_ID2)
-    req_uri = client.prepare_request_uri(
-        URL_DICT['google_oauth'],
-        redirect_uri=DATA['redirect_uri'],
-        scope=DATA['scope'],
-        prompt=DATA['prompt']
-    )
-    return redirect(req_uri)
-
-@csrf_exempt
-def callback_google_trial(request):
-    if request.method == 'OPTIONS':
-        return JsonResponse({}, status=200)
-
-    print("callback trial")
-
-    # Get authorization code
-    code = request.GET.get('code')
-    print("code", code)
-
-    # Redirect URL
-    # redirect_url = request.build_absolute_uri()
-    redirect_url = request.build_absolute_uri().replace("http://", "https://")
-    print("redirect_url", redirect_url)
-
-    # Prepare token request
-    token_url, headers, body = CLIENT.prepare_token_request(
-        URL_DICT['token_gen'],
-        authorization_response=request.build_absolute_uri(),
-        redirect_url=DATA['redirect_uri'],
-        code=code
-    )
-
-    # Generate token
-    token_response = requests.post(
-        token_url,
-        headers=headers,
-        data=body,
-        auth=(CLIENT_ID2, CLIENT_SECRET2)
-    )
-
-    CLIENT.parse_request_body_response(json.dumps(token_response.json()))
-
-    # Get user info
-    uri, headers, body = CLIENT.add_token(URL_DICT['get_user_info'])
-    response_user_info = requests.get(uri, headers=headers, data=body)
-    info = response_user_info.json()
-    print(f"User Info: {info}")
-
-    # User data
-    new_user = {
-        'sub': info['sub'],
-        'name': info['name'],
-        'email': info['email'],
-        'picture': info['picture']
-    }
-
-    # Check existing user
-    existing_user = user_collection.find_one({'email': new_user['email']})
-
-    if existing_user:
-        print("User with this email already exists.")
-        user_id = str(existing_user['_id'])
-    else:
-        result = user_collection.insert_one(new_user)
-        user_id = str(result.inserted_id)
-        print("User data inserted successfully!")
-
-    # Email verification
-    if info.get("email_verified"):
-        access_token, refresh_token = generate_tokens(user_id)
-        # print(token)
-
-        params = {
-            "message": "Email verified",
-            "name": info['name'],
-            "email": info['email'],
-            "picture": info['picture'],
-            "token": access_token,
-            "refresh_token": refresh_token
-        }
-
-        # Encode parameters
-        encoded_params = urlencode(params)
-        print("encoded_params: ", encoded_params)
-
-        # Redirect URL
-        redirect_url = f"https://chat-persona-ai.vercel.app/AuthRedirectPage?{encoded_params}"
-        return redirect(redirect_url)
-    else:
-        return JsonResponse({"message": "Email not verified"}, status=200)
 
 
 @csrf_exempt
@@ -448,10 +261,21 @@ def add_bot(request):
             description = data.get('description')
             prompt = data.get('prompt')
             start_message = data.get('start_message')
-            image_url = data.get('image_url')
+            # image_url = data.get('image_url')
+
+            # Handling the uploaded image file
+            image_file = request.FILES.get('image_file')
+            file_id = ""
+            image_url = ""
+            if image_file:
+                # Save the image in GridFS
+                print("haaa hai")
+                file_id = fs.put(image_file, filename=image_file.name)
+            if (file_id != ""):
+                image_url = f"https://fun-chat-red.vercel.app/get_image?file_id={str(file_id)}"
 
             # Check for required fields
-            if not description or not image_url:
+            if not description or not prompt or not bot_name:
                 return JsonResponse({"error": "Missing required fields"}, status=400)
 
             # Create bot document
@@ -477,6 +301,243 @@ def add_bot(request):
 
     return JsonResponse({"message": "Invalid request method"}, status=405)
 
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+# Initialize Google AI Embeddings
+embedding_model = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+
+# FAISS Directory
+FAISS_DIR = "faiss_indexes"
+os.makedirs(FAISS_DIR, exist_ok=True)
+
+
+
+def get_pdf_text(pdf_docs):
+    """Extract text from uploaded PDFs"""
+    text = ""
+    for pdf in pdf_docs:
+        pdf_reader = PdfReader(pdf)
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+    return text
+
+def get_text_chunks(text):
+    """Split large text into smaller chunks for FAISS indexing."""
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
+    return text_splitter.split_text(text)
+
+def save_faiss_index(vector_store, bot_id):
+    """Save FAISS index locally for retrieval."""
+    faiss_path = os.path.join(FAISS_DIR, f"{bot_id}.faiss")
+    vector_store.save_local(faiss_path)
+
+# from gridfs import GridFS
+
+# Assuming `fs` is initialized as GridFS(db)
+import os
+
+def save_faiss_to_mongo(vector_store):
+    """Save FAISS index to MongoDB and return the file ID."""
+    # Ensure the temporary directory exists
+    faiss_temp_dir = '/tmp/faiss_temp/'
+    os.makedirs(faiss_temp_dir, exist_ok=True)  # Create the temp directory if it doesn't exist
+    
+    faiss_temp_file = os.path.join(faiss_temp_dir, 'faiss_index.bin')  # Ensure it's a file, not a directory
+    
+    # Save FAISS index locally first
+    vector_store.save_local(faiss_temp_file)  # Save the FAISS index to the file
+
+    with open(faiss_temp_file, 'rb') as faiss_file:
+        # Save the FAISS index to MongoDB GridFS
+        file_id = fs.put(faiss_file, filename="faiss_index")
+    
+    return file_id
+
+import os
+import zipfile
+
+def compress_directory(dir_path, zip_path):
+    """Compresses the directory at dir_path into a zip file at zip_path."""
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(dir_path):
+            for file in files:
+                file_path = os.path.join(root, file)
+                # Use a relative path inside the zip archive
+                arcname = os.path.relpath(file_path, start=dir_path)
+                zipf.write(file_path, arcname)
+
+
+def save_faiss_index(vector_store, bot_id):
+    """
+    Save the FAISS index locally (as a directory) and also compress it into a ZIP file
+    to upload to MongoDB via GridFS. The GridFS file ID is stored in the bot document.
+    """
+    # Define the local directory where FAISS index is saved
+    faiss_dir = os.path.join(FAISS_DIR, f"{bot_id}.faiss")
+    # Save the FAISS index locally (this creates a directory with multiple files)
+    vector_store.save_local(faiss_dir)
+    
+    # Compress the FAISS directory into a ZIP file
+    zip_path = os.path.join(FAISS_DIR, f"{bot_id}.faiss.zip")
+    compress_directory(faiss_dir, zip_path)
+    
+    # Upload the ZIP file to MongoDB using GridFS
+
+    with open(zip_path, 'rb') as f:
+        file_data = f.read()
+    file_id = fs.put(file_data, filename=f"{bot_id}.faiss.zip")
+    
+    # Update the bot document with the FAISS GridFS file ID
+    chat_bots_collection.update_one(
+        {"_id": ObjectId(bot_id)},
+        {"$set": {"faiss_file_id": str(file_id)}}
+    )
+
+
+@csrf_exempt
+def add_user_bot(request):
+    if request.method == "POST":
+        try:
+            data = request.POST  # For form data
+            email = data.get('email')
+            bot_name = data.get('bot_name')
+            description = data.get('description')
+            
+            start_message = data.get('start_message')
+            # image_url = data.get('image_url')
+
+            # Handling the uploaded image file
+            image_file = request.FILES.get('image_file')
+            file_id = ""
+            image_url = ""
+            if image_file:
+                # Save the image in GridFS
+                print("haaa hai")
+                file_id = fs.put(image_file, filename=image_file.name)
+            if (file_id != ""):
+                image_url = f"http://127.0.0.1:8000/get_image?file_id={str(file_id)}"
+
+            # Check for required fields
+            if not description or not bot_name:
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+
+            # Get PDF files (if any)
+            pdf_docs = request.FILES.getlist('pdf_files')
+            print("pdf_docs hai ye:",pdf_docs)
+            text_chunks =''
+            if (pdf_docs):
+                print("pdf_mila kya")
+                try:
+                # Extract text from PDFs
+                    pdf_text = get_pdf_text(pdf_docs) if pdf_docs else ""
+                    combined_text = pdf_text  # Merge all data
+
+                    # Chunk text
+                    text_chunks = get_text_chunks(combined_text)
+                    
+                    # Generate embeddings and save to FAISS
+                    vector_store = FAISS.from_texts(text_chunks, embedding=embedding_model)
+                    # Save FAISS index to MongoDB and get the file ID
+                    # faiss_file_id = save_faiss_to_mongo(vector_store)
+                except Exception as e:
+                    print(e)
+            # Check for required fields
+            if not description or not image_url:
+                return JsonResponse({"error": "Missing required fields"}, status=400)
+            
+            prompt = f'''
+You are {bot_name} and respond based on description
+{description}
+            '''
+            # Create bot document
+            new_bot = {
+                "bot_name": bot_name,
+                "description": description,
+                "prompt": prompt,
+                "image_url": image_url,
+                "start_message": start_message,
+                "created_at": datetime.now(),
+                'email':email
+            }
+
+            # Insert into MongoDB
+            result = chat_bots_collection.insert_one(new_bot)
+
+
+            
+            if result.inserted_id:
+                if (pdf_docs):
+                    # Save FAISS index
+                    save_faiss_index(vector_store, result.inserted_id)
+                
+                
+
+                return JsonResponse({"message": "Bot added successfully", "bot_id": str(result.inserted_id)}, status=201)
+            else:
+                return JsonResponse({"message": "Failed to add bot"}, status=500)
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"message": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def delete_faiss_file_id(request):
+    """
+    API endpoint to delete the FAISS file from GridFS and locally (if exists),
+    and update the bot's file id field to an empty string.
+    """
+    if request.method == "POST":
+        try:
+            data = request.POST
+            bot_id = data.get("bot_id")
+            if not bot_id:
+                return JsonResponse({"error": "Missing bot_id"}, status=400)
+            
+            # Retrieve the bot document using the provided bot_id
+            bot_doc = chat_bots_collection.find_one({"_id": ObjectId(bot_id)})
+            if not bot_doc:
+                return JsonResponse({"error": "Bot not found"}, status=404)
+            
+            file_id = bot_doc.get("faiss_file_id", "")
+            # Delete from GridFS if file_id exists
+            if file_id:
+            
+                try:
+                    fs.delete(ObjectId(file_id))
+                except Exception as e:
+                    # Log error if necessary (the file may already be deleted)
+                    print(f"Error deleting file from GridFS: {e}")
+            
+            # Remove local FAISS directory if it exists
+            faiss_dir = os.path.join(FAISS_DIR, f"{bot_id}.faiss")
+            if os.path.exists(faiss_dir):
+                try:
+                    shutil.rmtree(faiss_dir)
+                    print(f"Deleted local FAISS directory: {faiss_dir}")
+                except Exception as e:
+                    print(f"Error deleting local FAISS directory: {e}")
+            
+            # Remove the local FAISS ZIP file if it exists
+            zip_path = os.path.join(FAISS_DIR, f"{bot_id}.faiss.zip")
+            if os.path.exists(zip_path):
+                try:
+                    os.remove(zip_path)
+                    print(f"Deleted local FAISS zip file: {zip_path}")
+                except Exception as e:
+                    print(f"Error deleting local FAISS zip file: {e}")
+            
+            # Update the bot document: set the faiss_file_id field to an empty string.
+            chat_bots_collection.update_one(
+                {"_id": ObjectId(bot_id)},
+                {"$set": {"faiss_file_id": ""}}
+            )
+            
+            return JsonResponse({"message": "FAISS file deleted (from GridFS and locally) and bot updated."}, status=200)
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    
+    return JsonResponse({"message": "Invalid request method"}, status=405)
 
 # Get all bots from the database
 def get_all_bots(request):
@@ -511,7 +572,113 @@ def get_bot_by_id(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+def load_faiss_index(bot_id):
+    """
+    Load the FAISS index for a given bot.
+    If the local FAISS directory is missing, attempt to download the ZIP file from MongoDB,
+    extract it, and then load the index.
+    """
+    faiss_dir = os.path.join(FAISS_DIR, f"{bot_id}.faiss")
+    
+    # If the local FAISS directory doesn't exist, try to download it from GridFS
+    if not os.path.exists(faiss_dir):
+        bot_doc = chat_bots_collection.find_one({"_id": ObjectId(bot_id)})
+        if bot_doc and "faiss_file_id" in bot_doc:
+            file_id = bot_doc["faiss_file_id"]
+            try:
+                grid_out = fs.get(ObjectId(file_id))
+                # Save the ZIP file temporarily
+                zip_path = os.path.join(FAISS_DIR, f"{bot_id}.faiss.zip")
+                with open(zip_path, 'wb') as f:
+                    f.write(grid_out.read())
+                # Extract the ZIP file into the FAISS directory
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(faiss_dir)
+            except Exception as e:
+                print(f"Error retrieving FAISS index from GridFS: {e}")
+                return None
+        else:
+            print("No FAISS file ID found in the bot document.")
+            return None
+    
+    # Now load the FAISS index (using dangerous deserialization if you trust the source)
+    try:
+        return FAISS.load_local(faiss_dir, embedding_model, allow_dangerous_deserialization=True)
+    except Exception as e:
+        print(f"Error loading FAISS index: {e}")
+        return None
 
+
+
+# @csrf_exempt
+# def chat_generation(request):
+#     if request.method == "POST":
+#         data = request.POST  # For form data
+#         email = data.get('email')
+#         user_name = data.get('username')
+#         bot_id = data.get('bot_id')
+#         bot_name = data.get('bot_name')
+#         prompt = data.get('prompt')
+#         start_message = data.get('start_message')
+#         last_message = data.get('last_message')
+#         last_message = user_name + ": " + last_message
+
+#         user_chats = db['user_chats'].find_one({"email": email, "bot_id": bot_id})
+
+#         if user_chats:
+#             # If user chat exists, retrieve the dialog and add the last message
+#             chat_history = user_chats.get("chat_history", [])
+#             # chat_history_len= len(chat_history)
+
+#         else:
+#             new_user_chat = {
+#                 "email": email,
+#                 "bot_id": bot_id,
+#                 "chat_history": [start_message]  # Initialize chat_history with start_message and last_message
+#             }
+#             # Insert the new document into the 'user_chats' collection
+#             user_chats_collection.insert_one(new_user_chat)
+#             # return "User chat created with start message and last message."
+#             chat_history = [start_message]
+
+#         chat_history_string = '\n'.join(chat_history)
+#         chat_prompt = f'''
+# #Your task is to roleplay given character and reply to user {user_name} based on it and chat history roleplaying as the character.
+
+# Character:
+# '{prompt}'
+
+# chat history:
+# '{chat_history_string}'
+
+# last message:
+# {last_message}
+
+# You are {bot_name} and reply accordingly 
+
+# The response should be in Json format based on last message with a single dialog:
+# {{
+#     {user_name}: dialog
+# }}
+# '''
+
+#         # Call the groq_res function
+#         bot_chat = groq_res(chat_prompt)
+#         bot_chat = json.loads(bot_chat)
+
+#         bot_chat = list(bot_chat.values())[0]
+#         bot_response = {"sender":bot_name,"message":bot_chat}
+#         bot_chat = bot_name+": "+ bot_chat
+#         chat_history.append(last_message)
+#         chat_history.append(bot_chat)
+
+#         user_chats_collection.update_one(
+#             {"email": email, "bot_id": bot_id},
+#             {"$set": {"chat_history": chat_history}}
+#         )
+#         # return Response({"response": bot_chat})
+        
+#         return JsonResponse(bot_response, status=200)
 
 @csrf_exempt
 def chat_generation(request):
@@ -544,6 +711,16 @@ def chat_generation(request):
             # return "User chat created with start message and last message."
             chat_history = [start_message]
 
+
+         # Fetch relevant context from FAISS index
+        vector_store = load_faiss_index(bot_id)
+        if vector_store:
+            # Use FAISS to retrieve relevant context based on the last message
+            context_docs = vector_store.similarity_search(last_message, k=3)  # Top 3 similar documents
+            context = "\n".join([doc.page_content for doc in context_docs])
+        else:
+            context = ""  # No FAISS index found, use empty context
+        print("context:  ", context)
         chat_history_string = '\n'.join(chat_history)
         chat_prompt = f'''
 #Your task is to roleplay given character and reply to user {user_name} based on it and chat history roleplaying as the character.
@@ -554,18 +731,18 @@ Character:
 chat history:
 '{chat_history_string}'
 
+Relevant Context:
+'{context}'
+
 last message:
 {last_message}
 
 You are {bot_name} and reply accordingly 
 
-The response should be based on last message with a single dialog.
-
-Return a single response in json format
+The response should be in Json format based on last message with a single dialog:
 {{
-    response:response
+    {user_name}: dialog
 }}
-
 '''
 
         # Call the groq_res function
@@ -585,7 +762,7 @@ Return a single response in json format
         # return Response({"response": bot_chat})
         
         return JsonResponse(bot_response, status=200)
-
+    
 
 def show_chat(request):
     email = request.GET.get('email')
@@ -677,10 +854,9 @@ def get_image(request):
     try:
         # Fetch the image from GridFS
         file_data = fs.get(ObjectId(file_id))
-        content_type = file_data.content_type or "application/octet-stream"
+        content_type = file_data.content_type or "image/jpeg"
 
         # Return the image as an HTTP response
         return HttpResponse(file_data.read(), content_type=content_type)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
