@@ -1,5 +1,6 @@
 
 # ChatPersona AI
+[🌐 Live Demo](https://chat-persona-ai.vercel.app/)
 
 ChatPersona AI is an AI-powered chatbot platform that lets users create and interact with customizable chatbot characters. Each bot can have unique traits, tones, and dialogue styles, offering a highly personalized conversational experience.
 
